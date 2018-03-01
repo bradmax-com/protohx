@@ -114,7 +114,7 @@ class ReadUtils {
         return result;
     }
     public static function read__TYPE_UINT32(input:PT_InputStream):PT_UInt {
-        var result:PT_Int = 0;
+        var result:PT_UInt = 0;
         var i:PT_UInt = 0;
         while ( true ) {
             var b:PT_Int = input.readUnsignedByte();
