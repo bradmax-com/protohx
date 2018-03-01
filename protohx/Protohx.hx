@@ -5,6 +5,8 @@ typedef PT_Int = Int;
 
 #if (as3||cs)
 typedef PT_UInt = Int;
+#else if cpp
+typedef PT_UInt = cpp.UInt32;
 #else
 typedef PT_UInt = UInt;
 #end
