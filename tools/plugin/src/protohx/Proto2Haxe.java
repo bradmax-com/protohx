@@ -417,6 +417,7 @@ public final class Proto2Haxe {
 
     private static String defaultValue(Scope<?> scope, FieldDescriptorProto fdp) {
         String value = fdp.getDefaultValue();
+        // System.out.println("---------- value: "+ value);
         switch (fdp.getType()) {
             case TYPE_DOUBLE:
             case TYPE_FLOAT:
@@ -556,13 +557,14 @@ public final class Proto2Haxe {
             final String upperCamelCaseField = getUpperCamelCaseField(fdp);
             final String haxeType = upperImport(getHaxeType(scope, fdp));
             final boolean valueType = isValueType(fdp.getType());
+
             content.append("\n\t/** " + fdp.getLabel() + " " + fdp.getName() + " : " + fdp.getType() + " = " + fdp.getNumber() + " */\n");
 
             assert (fdp.hasLabel());
             switch (fdp.getLabel()) {
                 case LABEL_OPTIONAL:
-                    content.append(varDefinition(lowerCamelCaseField, haxeType, false));
-                    content.append(varHelperSetter(lowerCamelCaseField, upperCamelCaseField, haxeType, false, className));
+                    content.append(varDefinition(lowerCamelCaseField, haxeType, false, true));
+                    content.append(varHelperSetter(lowerCamelCaseField, upperCamelCaseField, haxeType, false, className, true));
 
                     if (valueType) {
                         final int valueTypeId = valueTypeCount++;
@@ -582,7 +584,8 @@ public final class Proto2Haxe {
                         content.append("\t\treturn (hasField__" + valueTypeField + " & 0x" + Integer.toHexString(1 << valueTypeBit) + ") != 0;\n");
                         content.append("\t}\n\n");
 
-                        content.append("\tpublic function set_" + lowerCamelCaseField + "(value:" + haxeType + "):" + haxeType + "{\n");
+                        content.append("\tpublic function set_" + lowerCamelCaseField + "(value:Null<" + haxeType + ">):Null<" + haxeType + ">{\n");
+                        content.append("\t\tif(value != null)\n");
                         content.append("\t\thasField__" + valueTypeField + " |= 0x" + Integer.toHexString(1 << valueTypeBit) + ";\n");
                         content.append("\t\treturn this." + lowerCamelCaseField + " = value;\n");
                         content.append("\t}\n\n");
@@ -600,7 +603,7 @@ public final class Proto2Haxe {
                         content.append("\t}\n\n");
                     }
 
-                    content.append("\tpublic function get_" + lowerCamelCaseField + "():" + haxeType + " {\n");
+                    content.append("\tpublic function get_" + lowerCamelCaseField + "():Null<" + haxeType + "> {\n");
                     if (fdp.hasDefaultValue()) {
                         content.append("\t\tif(!has" + upperCamelCaseField + "()) {\n");
                         content.append("\t\t\treturn " + defaultValue(scope, fdp) + ";\n");
@@ -610,8 +613,8 @@ public final class Proto2Haxe {
                     content.append("\t}\n\n");
                     break;
                 case LABEL_REQUIRED:
-                    content.append(varDefinition(lowerCamelCaseField, haxeType, false));
-                    content.append(varHelperSetter(lowerCamelCaseField, upperCamelCaseField, haxeType, false, className));
+                    content.append(varDefinition(lowerCamelCaseField, haxeType, false, false));
+                    content.append(varHelperSetter(lowerCamelCaseField, upperCamelCaseField, haxeType, false, className, false));
 
                     content.append("\tpublic function set_" + lowerCamelCaseField + "(value:" + haxeType + "):" + haxeType + "{\n");
                     content.append("\t\treturn this." + lowerCamelCaseField + " = value;\n");
@@ -623,8 +626,8 @@ public final class Proto2Haxe {
 
                     break;
                 case LABEL_REPEATED:
-                    content.append(varDefinition(lowerCamelCaseField, haxeType, true));
-                    content.append(varHelperSetter(lowerCamelCaseField, upperCamelCaseField, haxeType, true, className));
+                    content.append(varDefinition(lowerCamelCaseField, haxeType, true, false));
+                    content.append(varHelperSetter(lowerCamelCaseField, upperCamelCaseField, haxeType, true, className, false));
 
                     content.append("\tpublic function set_" + lowerCamelCaseField + "(value:Array<" + haxeType + ">):Array<" + haxeType + "> {\n");
                     content.append("\t\treturn this." + lowerCamelCaseField + " = value;\n");
@@ -821,18 +824,18 @@ public final class Proto2Haxe {
         content.append("}\n");
     }
 
-    private static String varDefinition(String lowerCamelCaseField, String haxeType, boolean repeated) {
+    private static String varDefinition(String lowerCamelCaseField, String haxeType, boolean repeated, boolean optional) {
         if (repeated) {
             haxeType = "Array<" + haxeType + ">";
         }
-        return "\t@:isVar public var " + lowerCamelCaseField + "(get, set):" + haxeType + ";\n";
+        return "\t@:isVar public var " + lowerCamelCaseField + "(get, set):" + (optional == true ? "Null<" : "") + haxeType + (optional == true ? ">" : "") + ";\n";
     }
 
-    private static String varHelperSetter(String lowerCamelCaseField, String upperCamelCaseField, String haxeType, boolean repeated, String className) {
+    private static String varHelperSetter(String lowerCamelCaseField, String upperCamelCaseField, String haxeType, boolean repeated, String className, boolean optional) {
         if (repeated) {
             haxeType = "Array<" + haxeType + ">";
         }
-        return "\tpublic inline function set" + upperCamelCaseField + "(value:" + haxeType + "):" + upperFirst(className) + "{\n" +
+        return "\tpublic inline function set" + upperCamelCaseField + "(value:" + (optional == true ? "Null<" : "") + haxeType + (optional == true ? ">" : "") + "):" + upperFirst(className) + "{\n" +
                 "\t\tthis." + lowerCamelCaseField + " = value;\n" +
                 "\t\treturn this;\n" +
                 "\t}\n\n";
